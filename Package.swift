@@ -43,7 +43,7 @@ let package = Package(
                 .define("TARGET_OS_MAC", to: "1", .when(platforms: [.macOS, .iOS])),
                 .define("TARGET_OS_IPHONE", to: "1", .when(platforms: [.iOS])),
             ]),
-        .systemLibrary(name: "playerctl", pkgConfig: "playerctl"),
+//        .systemLibrary(name: "playerctl", pkgConfig: "playerctl"),
     ]
 )
 
@@ -54,11 +54,7 @@ enum CombineImplementation {
     case openCombine
     
     static var `default`: CombineImplementation {
-        #if canImport(Combine)
-        return .combine
-        #else
         return .combineX
-        #endif
     }
     
     init?(_ description: String) {
