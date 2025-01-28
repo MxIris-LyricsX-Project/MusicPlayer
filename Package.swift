@@ -13,8 +13,8 @@ let package = Package(
         .library(name: "LXMusicPlayer", targets: ["LXMusicPlayer"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/cx-org/CXShim", .upToNextMinor(from: "0.4.0")),
-        .package(url: "https://github.com/cx-org/CXExtensions", .upToNextMinor(from: "0.4.0")),
+        .package(url: "https://github.com/MxIris-LyricsX-Project/CXShim", .branchItem("master")),
+        .package(url: "https://github.com/MxIris-LyricsX-Project/CXExtensions", .branchItem("master")),
     ],
     targets: [
         .target(
