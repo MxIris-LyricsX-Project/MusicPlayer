@@ -17,7 +17,7 @@
 #define kMediaRemotePath "/System/Library/PrivateFrameworks/MediaRemote.framework/MediaRemote"
 
 bool MRIsMediaRemoteLoaded = false;
-
+SLDeclareFunction(MRMediaRemoteGetNowPlayingClient, void, dispatch_queue_t, void (^)(_MRNowPlayingClientProtobuf * _Nullable client));
 SLDefineFunction(MRMediaRemoteSendCommand, Boolean, MRCommand, _Nullable id);
 SLDefineFunction(MRMediaRemoteSetElapsedTime, void, double);
 
@@ -40,6 +40,7 @@ __attribute__((constructor)) static void loadMediaRemote() {
     
     SLLoad(handle, MRMediaRemoteGetNowPlayingInfo);
     SLLoad(handle, MRMediaRemoteGetNowPlayingApplicationIsPlaying);
+    SLLoad(handle, MRMediaRemoteGetNowPlayingClient);
     
     SLLoad(handle, MRMediaRemoteRegisterForNowPlayingNotifications);
     SLLoad(handle, MRMediaRemoteUnregisterForNowPlayingNotifications);

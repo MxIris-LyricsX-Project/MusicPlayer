@@ -15,6 +15,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/MxIris-LyricsX-Project/CXShim", .branchItem("master")),
         .package(url: "https://github.com/MxIris-LyricsX-Project/CXExtensions", .branchItem("master")),
+        .package(url: "https://github.com/PrivateFrameworks/ProtocolBuffer", .upToNextMinor(from: "0.1.0")),
     ],
     targets: [
         .target(
@@ -39,6 +40,9 @@ let package = Package(
             ]),
         .target(
             name: "MediaRemotePrivate",
+            dependencies: [
+                .product(name: "PrivateProtocolBuffer", package: "ProtocolBuffer"),
+            ],
             cSettings: [
                 .define("TARGET_OS_MAC", to: "1", .when(platforms: [.macOS, .iOS])),
                 .define("TARGET_OS_IPHONE", to: "1", .when(platforms: [.iOS])),

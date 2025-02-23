@@ -14,22 +14,22 @@ import MediaRemotePrivate
 import CXShim
 
 extension MusicPlayers {
-    
     public final class SystemMedia: ObservableObject {
-        
         public static var available: Bool {
             return MRIsMediaRemoteLoaded
         }
-        
+
         @Published public private(set) var currentTrack: MusicTrack?
         @Published public private(set) var playbackState: PlaybackState = .stopped
-        
+
+        public var allowsApplicationBundleIdentifiers: [String] = []
+
         private var systemPlaybackState: SystemPlaybackState?
-        
+
         public init?() {
             guard Self.available else { return nil }
             MRMediaRemoteRegisterForNowPlayingNotifications_?(DispatchQueue.playerUpdate)
-            
+
             let nc = NotificationCenter.default
             nc.addObserver(forName: .mediaRemoteNowPlayingApplicationPlaybackStateDidChange, object: nil, queue: nil) { [weak self] n in
                 self?.mediaRemoteNowPlayingApplicationPlaybackStateDidChange(n: n)
@@ -37,17 +37,17 @@ extension MusicPlayers {
             nc.addObserver(forName: .mediaRemoteNowPlayingInfoDidChange, object: nil, queue: nil) { [weak self] n in
                 self?.mediaRemoteNowPlayingInfoDidChange(n: n)
             }
-            
+
             MRMediaRemoteGetNowPlayingApplicationIsPlaying_?(DispatchQueue.playerUpdate) { [weak self] isPlaying in
                 self?.systemPlaybackState = isPlaying.boolValue ? .playing : .paused
                 self?.updatePlayerState()
             }
         }
-        
+
         deinit {
             MRMediaRemoteUnregisterForNowPlayingNotifications_?()
         }
-        
+
         private func getNowPlayingInfoCallback(_ infoDict: CFDictionary?) {
             guard let infoDict = infoDict as NSDictionary? else {
                 playbackState = .stopped
@@ -67,20 +67,20 @@ extension MusicPlayers {
             if !playbackState.approximateEqual(to: newState) {
                 playbackState = newState
             }
-            
+
             let newTrack = info.track
             if newTrack?.id != currentTrack?.id {
                 currentTrack = newTrack
             }
         }
-        
+
         private func mediaRemoteNowPlayingApplicationPlaybackStateDidChange(n: Notification) {
             guard let info = n.userInfo as! [String: Any]? else {
                 playbackState = .stopped
                 currentTrack = nil
                 return
             }
-            
+
             systemPlaybackState = (info["kMRMediaRemotePlaybackStateUserInfoKey"] as? Int).flatMap(SystemPlaybackState.init)
             if systemPlaybackState == .playing || systemPlaybackState == .paused {
                 updatePlayerState()
@@ -89,7 +89,7 @@ extension MusicPlayers {
                 currentTrack = nil
             }
         }
-        
+
         private func mediaRemoteNowPlayingInfoDidChange(n: Notification) {
             // TODO: extract track info from notification
             updatePlayerState()
@@ -98,19 +98,18 @@ extension MusicPlayers {
 }
 
 extension MusicPlayers.SystemMedia: MusicPlayerProtocol {
-    
     public var currentTrackWillChange: AnyPublisher<MusicTrack?, Never> {
         return $currentTrack.eraseToAnyPublisher()
     }
-    
+
     public var playbackStateWillChange: AnyPublisher<PlaybackState, Never> {
         return $playbackState.eraseToAnyPublisher()
     }
-    
+
     public var name: MusicPlayerName? {
         return nil
     }
-    
+
     public var playbackTime: TimeInterval {
         get {
             return playbackState.time
@@ -120,37 +119,52 @@ extension MusicPlayers.SystemMedia: MusicPlayerProtocol {
             playbackState = playbackState.withTime(newValue)
         }
     }
-    
+
     public func resume() {
         _ = MRMediaRemoteSendCommand_?(.play, nil)
     }
-    
+
     public func pause() {
         _ = MRMediaRemoteSendCommand_?(.pause, nil)
     }
-    
+
     public func playPause() {
         _ = MRMediaRemoteSendCommand_?(.togglePlayPause, nil)
     }
-    
+
     public func skipToNextItem() {
         _ = MRMediaRemoteSendCommand_?(.nextTrack, nil)
     }
-    
+
     public func skipToPreviousItem() {
         _ = MRMediaRemoteSendCommand_?(.previousTrack, nil)
     }
-    
+
     public func updatePlayerState() {
+        MRMediaRemoteGetNowPlayingClient_?(DispatchQueue.playerUpdate) { [weak self] client in
+            guard let self, let client else { return }
+            if var bundleIdentifier = client.bundleIdentifier, !allowsApplicationBundleIdentifiers.isEmpty {
+                if let parentApplicationBundleIdentifier = client.parentApplicationBundleIdentifier {
+                    bundleIdentifier = parentApplicationBundleIdentifier
+                }
+                if allowsApplicationBundleIdentifiers.contains(bundleIdentifier) {
+                    updateNowPlayingInfo()
+                }
+            } else {
+                updateNowPlayingInfo()
+            }
+        }
+    }
+
+    public func updateNowPlayingInfo() {
         MRMediaRemoteGetNowPlayingInfo_?(DispatchQueue.playerUpdate) { [weak self] info in
             self?.getNowPlayingInfoCallback(info)
         }
     }
 }
 
-private extension MusicPlayers.SystemMedia {
-    
-    enum SystemPlaybackState: Int {
+extension MusicPlayers.SystemMedia {
+    fileprivate enum SystemPlaybackState: Int {
         case terminated = 0
         case playing = 1
         case paused = 2
@@ -158,10 +172,9 @@ private extension MusicPlayers.SystemMedia {
     }
 }
 
-private extension Notification.Name {
-    
-    static let mediaRemoteNowPlayingInfoDidChange = Notification.Name("kMRMediaRemoteNowPlayingInfoDidChangeNotification")
-    static let mediaRemoteNowPlayingApplicationPlaybackStateDidChange = Notification.Name("kMRMediaRemoteNowPlayingApplicationPlaybackStateDidChangeNotification")
+extension Notification.Name {
+    fileprivate static let mediaRemoteNowPlayingInfoDidChange = Notification.Name("kMRMediaRemoteNowPlayingInfoDidChangeNotification")
+    fileprivate static let mediaRemoteNowPlayingApplicationPlaybackStateDidChange = Notification.Name("kMRMediaRemoteNowPlayingApplicationPlaybackStateDidChangeNotification")
 }
 
 #endif

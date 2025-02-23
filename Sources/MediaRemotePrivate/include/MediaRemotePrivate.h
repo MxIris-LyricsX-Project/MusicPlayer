@@ -10,11 +10,60 @@
 #if TARGET_OS_MAC
 
 #import <Foundation/Foundation.h>
+#import "_MRNowPlayingClientProtobuf.h"
 #import "SymbolLoader.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
 extern bool MRIsMediaRemoteLoaded;
+
+extern NSString *kMRMediaRemoteNowPlayingInfoDidChangeNotification;
+extern NSString *kMRMediaRemoteNowPlayingPlaybackQueueDidChangeNotification;
+extern NSString *kMRMediaRemotePickableRoutesDidChangeNotification;
+extern NSString *kMRMediaRemoteNowPlayingApplicationDidChangeNotification;
+extern NSString *kMRMediaRemoteNowPlayingApplicationIsPlayingDidChangeNotification;
+extern NSString *kMRMediaRemoteRouteStatusDidChangeNotification;
+extern NSString *kMRNowPlayingPlaybackQueueChangedNotification;
+extern NSString *kMRPlaybackQueueContentItemsChangedNotification;
+
+extern NSString *kMRMediaRemoteNowPlayingInfoArtist;
+extern NSString *kMRMediaRemoteNowPlayingInfoTitle;
+extern NSString *kMRMediaRemoteNowPlayingInfoAlbum;
+extern NSString *kMRMediaRemoteNowPlayingInfoArtworkData;
+extern NSString *kMRMediaRemoteNowPlayingInfoPlaybackRate;
+extern NSString *kMRMediaRemoteNowPlayingInfoDuration;
+extern NSString *kMRMediaRemoteNowPlayingInfoElapsedTime;
+extern NSString *kMRMediaRemoteNowPlayingInfoTimestamp;
+extern NSString *kMRMediaRemoteNowPlayingInfoClientPropertiesData;
+extern NSString *kMRMediaRemoteNowPlayingInfoArtworkIdentifier;
+extern NSString *kMRMediaRemoteNowPlayingInfoShuffleMode;
+extern NSString *kMRMediaRemoteNowPlayingInfoTrackNumber;
+extern NSString *kMRMediaRemoteNowPlayingInfoTotalQueueCount;
+extern NSString *kMRMediaRemoteNowPlayingInfoArtistiTunesStoreAdamIdentifier;
+extern NSString *kMRMediaRemoteNowPlayingInfoArtworkMIMEType;
+extern NSString *kMRMediaRemoteNowPlayingInfoMediaType;
+extern NSString *kMRMediaRemoteNowPlayingInfoiTunesStoreSubscriptionAdamIdentifier;
+extern NSString *kMRMediaRemoteNowPlayingInfoGenre;
+extern NSString *kMRMediaRemoteNowPlayingInfoComposer;
+extern NSString *kMRMediaRemoteNowPlayingInfoQueueIndex;
+extern NSString *kMRMediaRemoteNowPlayingInfoiTunesStoreIdentifier;
+extern NSString *kMRMediaRemoteNowPlayingInfoTotalTrackCount;
+extern NSString *kMRMediaRemoteNowPlayingInfoContentItemIdentifier;
+extern NSString *kMRMediaRemoteNowPlayingInfoIsMusicApp;
+extern NSString *kMRMediaRemoteNowPlayingInfoAlbumiTunesStoreAdamIdentifier;
+extern NSString *kMRMediaRemoteNowPlayingInfoUniqueIdentifier;
+
+extern NSString *kMRActiveNowPlayingPlayerPathUserInfoKey;
+extern NSString *kMRMediaRemoteNowPlayingApplicationIsPlayingUserInfoKey;
+extern NSString *kMRMediaRemoteNowPlayingApplicationDisplayNameUserInfoKey;
+extern NSString *kMRMediaRemoteNowPlayingApplicationPIDUserInfoKey;
+extern NSString *kMRMediaRemoteOriginUserInfoKey;
+extern NSString *kMRMediaRemotePlaybackStateUserInfoKey;
+extern NSString *kMRMediaRemoteUpdatedContentItemsUserInfoKey;
+extern NSString *kMRNowPlayingClientUserInfoKey;
+extern NSString *kMRNowPlayingPlayerPathUserInfoKey;
+extern NSString *kMRNowPlayingPlayerUserInfoKey;
+extern NSString *kMROriginActiveNowPlayingPlayerPathUserInfoKey;
 
 typedef NS_ENUM(NSInteger, MRCommand) {
     /*
@@ -47,6 +96,7 @@ typedef NS_ENUM(NSInteger, MRCommand) {
     MRCommandRemoveTrackFromWishList = 0x6D
 };
 
+SLDeclareFunction(MRMediaRemoteGetNowPlayingClient, void, dispatch_queue_t, void (^)(_MRNowPlayingClientProtobuf * _Nullable client));
 SLDeclareFunction(MRMediaRemoteSendCommand, Boolean, MRCommand, _Nullable id);
 SLDeclareFunction(MRMediaRemoteSetElapsedTime, void, double);
 
