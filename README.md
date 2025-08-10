@@ -22,12 +22,6 @@ Unified API for music players.
 - [x] Music
 - [ ] Spotify (see [#5](https://github.com/ddddxxx/MusicPlayer/issues/5))
 
-#### Linux
-
-- [x] [MPRIS](https://specifications.freedesktop.org/mpris-spec/latest/) (test needed) (Thanks to [@suransea](https://github.com/suransea))
-
-<details><summary>Read me before using MPRIS</summary>
-
 ##### dependencies
 
 - [playerctl](https://github.com/altdesktop/playerctl) (could be installed by package manager)
