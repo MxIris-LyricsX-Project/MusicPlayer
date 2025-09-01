@@ -63,7 +63,7 @@ struct MRNowPlayingInfo {
         if let id = _uniqueIdentifier {
             return id.description
         } else if let title = _title {
-            return "NowPlaying-\(title)-\(_album ?? "")-\(_duration.map(Int.init) ?? 0)"
+            return "NowPlaying-\(title)\(_album.map { "-\($0)" } ?? "")"
         } else {
             return nil
         }
