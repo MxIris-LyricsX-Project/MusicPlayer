@@ -8,7 +8,7 @@
 //
 
 import Foundation
-import CXShim
+import Combine
 
 public protocol MusicPlayerProtocol: AnyObject {
     

@@ -8,7 +8,7 @@
 //
 
 import Foundation
-import CXShim
+import Combine
 
 extension MusicPlayers {
     
@@ -37,7 +37,7 @@ extension MusicPlayers {
                         Publishers.MergeMany(players.map { $0.objectWillChange }).eraseToAnyPublisher()
                 }
                 .switchToLatest()
-                .receive(on: DispatchQueue.playerUpdate.cx)
+                .receive(on: DispatchQueue.playerUpdate)
                 .sink { [weak self] _ in
                     self?.selectNewPlayer()
                 }

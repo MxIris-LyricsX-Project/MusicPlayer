@@ -11,7 +11,7 @@
 
 import Foundation
 import MediaRemotePrivate
-import CXShim
+import Combine
 
 extension MusicPlayers {
     public final class SystemMedia: ObservableObject {

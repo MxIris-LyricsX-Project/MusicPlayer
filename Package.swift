@@ -5,24 +5,24 @@ import PackageDescription
 let package = Package(
     name: "MusicPlayer",
     platforms: [
-        .macOS(.v10_10),
-        .iOS(.v10),
+        .macOS(.v10_15),
+        .iOS(.v13),
     ],
     products: [
         .library(name: "MusicPlayer", targets: ["MusicPlayer"]),
         .library(name: "LXMusicPlayer", targets: ["LXMusicPlayer"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/MxIris-LyricsX-Project/CXShim", .branchItem("master")),
-        .package(url: "https://github.com/MxIris-LyricsX-Project/CXExtensions", .branchItem("master")),
+//        .package(url: "https://github.com/MxIris-LyricsX-Project/CXShim", .branchItem("master")),
+//        .package(url: "https://github.com/MxIris-LyricsX-Project/CXExtensions", .branchItem("master")),
         .package(url: "https://github.com/PrivateFrameworks/ProtocolBuffer", .upToNextMinor(from: "0.1.0")),
     ],
     targets: [
         .target(
             name: "MusicPlayer",
             dependencies: [
-                "CXShim",
-                "CXExtensions",
+//                "CXShim",
+//                "CXExtensions",
                 .target(name: "LXMusicPlayer", condition: .when(platforms: [.macOS])),
                 .target(name: "MediaRemotePrivate", condition: .when(platforms: [.macOS, .iOS])),
             ], cSettings: [

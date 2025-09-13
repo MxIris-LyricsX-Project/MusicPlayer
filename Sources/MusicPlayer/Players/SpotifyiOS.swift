@@ -10,7 +10,7 @@
 #if canImport(SpotifyiOSWrapper)
 
 import UIKit
-import CXShim
+import Combine
 import SpotifyiOSWrapper
 
 extension MusicPlayers {
