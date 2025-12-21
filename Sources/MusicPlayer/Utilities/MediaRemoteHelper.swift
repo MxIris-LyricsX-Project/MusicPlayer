@@ -15,6 +15,7 @@ extension TrackInfo {
         result["kMRMediaRemoteNowPlayingInfoElapsedTime"] = elapsedTimeMicros.map { $0 / 1000 / 1000 }
         result["kMRMediaRemoteNowPlayingInfoArtworkData"] = artworkDataBase64.flatMap { Data(base64Encoded: $0) }
         result["kMRMediaRemoteNowPlayingInfoUniqueIdentifier"] = uniqueIdentifier
+        result["kMRMediaRemoteNowPlayingInfoDuration"] = durationMicros.map { $0 / 1000 / 1000 }
         return result
     }
 }
