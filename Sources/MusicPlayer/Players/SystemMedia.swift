@@ -1,17 +1,9 @@
-//
-//  SystemMedia.swift
-//  LyricsX - https://github.com/ddddxxx/LyricsX
-//
-//  This Source Code Form is subject to the terms of the Mozilla Public
-//  License, v. 2.0. If a copy of the MPL was not distributed with this
-//  file, You can obtain one at https://mozilla.org/MPL/2.0/.
-//
-
 #if os(macOS) || os(iOS)
 
 import Foundation
-import MediaRemotePrivate
 import Combine
+import MediaRemotePrivate
+import MediaRemoteAdapter
 
 extension MusicPlayers {
     public final class SystemMedia: ObservableObject {
@@ -22,39 +14,104 @@ extension MusicPlayers {
         @Published public private(set) var currentTrack: MusicTrack?
         @Published public private(set) var playbackState: PlaybackState = .stopped
 
-        public var allowsApplicationBundleIdentifiers: [String] = []
+        public private(set) var usesAdapter: Bool = {
+            if #available(macOS 15.4, *) {
+                return true
+            } else {
+                return false
+            }
+        }()
+
+        private lazy var adapterController: MediaController = .init(bundleIdentifiers: allowsApplicationBundleIdentifiers) {
+            didSet {
+                oldValue.stopListening()
+                setupAdapterController()
+                adapterController.startListening()
+            }
+        }
+
+        public var allowsApplicationBundleIdentifiers: [String] {
+            didSet {
+                adapterController = .init(bundleIdentifiers: allowsApplicationBundleIdentifiers)
+            }
+        }
 
         private var systemPlaybackState: SystemPlaybackState?
 
-        public init?() {
-            guard Self.available else { return nil }
-            MRMediaRemoteRegisterForNowPlayingNotifications_?(DispatchQueue.playerUpdate)
+        public init?(allowsApplicationBundleIdentifiers: [String] = []) {
+            self.allowsApplicationBundleIdentifiers = allowsApplicationBundleIdentifiers
+            if usesAdapter {
+                setupAdapterController()
+                adapterController.startListening()
+                adapterController.updatePlayerState(userInfo: ["setSystemPlaybackState": true])
+            } else {
+                guard Self.available else { return nil }
 
-            let nc = NotificationCenter.default
-            nc.addObserver(forName: .mediaRemoteNowPlayingApplicationPlaybackStateDidChange, object: nil, queue: nil) { [weak self] n in
-                self?.mediaRemoteNowPlayingApplicationPlaybackStateDidChange(n: n)
-            }
-            nc.addObserver(forName: .mediaRemoteNowPlayingInfoDidChange, object: nil, queue: nil) { [weak self] n in
-                self?.mediaRemoteNowPlayingInfoDidChange(n: n)
-            }
+                MRMediaRemoteRegisterForNowPlayingNotifications_?(DispatchQueue.playerUpdate)
 
-            MRMediaRemoteGetNowPlayingApplicationIsPlaying_?(DispatchQueue.playerUpdate) { [weak self] isPlaying in
-                self?.systemPlaybackState = isPlaying.boolValue ? .playing : .paused
-                self?.updatePlayerState()
+                let nc = NotificationCenter.default
+                nc.addObserver(forName: .mediaRemoteNowPlayingApplicationPlaybackStateDidChange, object: nil, queue: nil) { [weak self] in
+                    guard let self else { return }
+                    handleNowPlayingApplicationPlaybackStateDidChange(for: $0)
+                }
+                nc.addObserver(forName: .mediaRemoteNowPlayingInfoDidChange, object: nil, queue: nil) { [weak self] in
+                    guard let self else { return }
+                    handleNowPlayingInfoDidChange(for: $0)
+                }
+
+                MRMediaRemoteGetNowPlayingApplicationIsPlaying_?(DispatchQueue.playerUpdate) { [weak self] isPlaying in
+                    guard let self else { return }
+                    self.systemPlaybackState = isPlaying.boolValue ? .playing : .paused
+                    updatePlayerState()
+                }
             }
         }
 
         deinit {
-            MRMediaRemoteUnregisterForNowPlayingNotifications_?()
+            if usesAdapter {
+                adapterController.stopListening()
+            } else {
+                MRMediaRemoteUnregisterForNowPlayingNotifications_?()
+            }
         }
 
-        private func getNowPlayingInfoCallback(_ infoDict: CFDictionary?) {
-            guard let infoDict = infoDict as NSDictionary? else {
+        private func setupAdapterController() {
+            adapterController.onTrackInfoReceived = { [weak self] trackInfo, userInfo in
+                guard let self else { return }
+                handleNowPlayingInfoDidChange(for: trackInfo, userInfo: userInfo)
+            }
+            adapterController.onPlaybackStateReceived = { [weak self] in
+                guard let self else { return }
+                _handleNowPlayingApplicationPlaybackStateDidChange(for: $0)
+            }
+        }
+
+        private func handleNowPlayingInfoDidChange(for trackInfo: TrackInfo?, userInfo: [String: Any]?) {
+            guard let trackInfo else {
                 playbackState = .stopped
                 currentTrack = nil
                 return
             }
-            let info = MRNowPlayingInfo(dict: infoDict)
+            if userInfo?["setSystemPlaybackState"] != nil {
+                systemPlaybackState = trackInfo.isPlaying == true ? .playing : .paused
+            }
+            _handleNowPlayingInfoDidChange(for: MRNowPlayingInfo(dict: trackInfo.asDictionary))
+        }
+
+        private func handleNowPlayingInfoDidChange(for notification: Notification) {
+            updatePlayerState()
+        }
+        
+        private func handleNowPlayingInfoDidChange(for infoDict: CFDictionary?) {
+            guard let infoDict = infoDict as? NSDictionary else {
+                playbackState = .stopped
+                currentTrack = nil
+                return
+            }
+            _handleNowPlayingInfoDidChange(for: MRNowPlayingInfo(dict: infoDict))
+        }
+
+        private func _handleNowPlayingInfoDidChange(for info: MRNowPlayingInfo) {
             let newState: PlaybackState
             switch systemPlaybackState {
             case .playing:
@@ -74,25 +131,24 @@ extension MusicPlayers {
             }
         }
 
-        private func mediaRemoteNowPlayingApplicationPlaybackStateDidChange(n: Notification) {
-            guard let info = n.userInfo as! [String: Any]? else {
+        private func handleNowPlayingApplicationPlaybackStateDidChange(for notification: Notification) {
+            guard let info = notification.userInfo else {
                 playbackState = .stopped
                 currentTrack = nil
                 return
             }
 
-            systemPlaybackState = (info["kMRMediaRemotePlaybackStateUserInfoKey"] as? Int).flatMap(SystemPlaybackState.init)
+            _handleNowPlayingApplicationPlaybackStateDidChange(for: info["kMRMediaRemotePlaybackStateUserInfoKey"] as? Int)
+        }
+
+        private func _handleNowPlayingApplicationPlaybackStateDidChange(for rawValue: Int?) {
+            systemPlaybackState = rawValue.flatMap(SystemPlaybackState.init)
             if systemPlaybackState == .playing || systemPlaybackState == .paused {
                 updatePlayerState()
             } else {
                 playbackState = .stopped
                 currentTrack = nil
             }
-        }
-
-        private func mediaRemoteNowPlayingInfoDidChange(n: Notification) {
-            // TODO: extract track info from notification
-            updatePlayerState()
         }
     }
 }
@@ -115,50 +171,72 @@ extension MusicPlayers.SystemMedia: MusicPlayerProtocol {
             return playbackState.time
         }
         set {
-            MRMediaRemoteSetElapsedTime_?(newValue)
+            if usesAdapter {
+                adapterController.setTime(seconds: newValue)
+            } else {
+                MRMediaRemoteSetElapsedTime_?(newValue)
+            }
             playbackState = playbackState.withTime(newValue)
         }
     }
 
     public func resume() {
-        _ = MRMediaRemoteSendCommand_?(.play, nil)
-    }
-
-    public func pause() {
-        _ = MRMediaRemoteSendCommand_?(.pause, nil)
-    }
-
-    public func playPause() {
-        _ = MRMediaRemoteSendCommand_?(.togglePlayPause, nil)
-    }
-
-    public func skipToNextItem() {
-        _ = MRMediaRemoteSendCommand_?(.nextTrack, nil)
-    }
-
-    public func skipToPreviousItem() {
-        _ = MRMediaRemoteSendCommand_?(.previousTrack, nil)
-    }
-
-    public func updatePlayerState() {
-        MRMediaRemoteGetNowPlayingClient_?(DispatchQueue.playerUpdate) { [weak self] client in
-            guard let self, let client else { return }
-            if var bundleIdentifier = client.bundleIdentifier, !allowsApplicationBundleIdentifiers.isEmpty {
-                if let parentApplicationBundleIdentifier = client.parentApplicationBundleIdentifier {
-                    bundleIdentifier = parentApplicationBundleIdentifier
-                }
-                if allowsApplicationBundleIdentifiers.contains(bundleIdentifier) {
-                    updateNowPlayingInfo()
-                }
-            } else {
-                updateNowPlayingInfo()
-            }
+        if usesAdapter {
+            adapterController.play()
+        } else {
+            _ = MRMediaRemoteSendCommand_?(.play, nil)
         }
     }
 
-    public func updateNowPlayingInfo() {
-        MRMediaRemoteGetNowPlayingInfo_?(DispatchQueue.playerUpdate) { [weak self] info in
-            self?.getNowPlayingInfoCallback(info)
+    public func pause() {
+        if usesAdapter {
+            adapterController.pause()
+        } else {
+            _ = MRMediaRemoteSendCommand_?(.pause, nil)
+        }
+    }
+
+    public func playPause() {
+        if usesAdapter {
+            adapterController.togglePlayPause()
+        } else {
+            _ = MRMediaRemoteSendCommand_?(.togglePlayPause, nil)
+        }
+    }
+
+    public func skipToNextItem() {
+        if usesAdapter {
+            adapterController.nextTrack()
+        } else {
+            _ = MRMediaRemoteSendCommand_?(.nextTrack, nil)
+        }
+    }
+
+    public func skipToPreviousItem() {
+        if usesAdapter {
+            adapterController.previousTrack()
+        } else {
+            _ = MRMediaRemoteSendCommand_?(.previousTrack, nil)
+        }
+    }
+
+    public func updatePlayerState() {
+        if usesAdapter {
+            adapterController.updatePlayerState()
+        } else {
+            MRMediaRemoteGetNowPlayingClient_?(DispatchQueue.playerUpdate) { [weak self] client in
+                guard let self, let client else { return }
+                if var bundleIdentifier = client.bundleIdentifier, !allowsApplicationBundleIdentifiers.isEmpty {
+                    if let parentApplicationBundleIdentifier = client.parentApplicationBundleIdentifier {
+                        bundleIdentifier = parentApplicationBundleIdentifier
+                    }
+                    guard allowsApplicationBundleIdentifiers.contains(bundleIdentifier) else { return }
+                }
+                MRMediaRemoteGetNowPlayingInfo_?(DispatchQueue.playerUpdate) { [weak self] info in
+                    guard let self else { return }
+                    handleNowPlayingInfoDidChange(for: info)
+                }
+            }
         }
     }
 }
