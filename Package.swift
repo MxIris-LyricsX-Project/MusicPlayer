@@ -1,4 +1,4 @@
-// swift-tools-version:5.10
+// swift-tools-version:5.3
 
 import PackageDescription
 import Foundation
@@ -39,7 +39,6 @@ let package = Package(
         .library(name: "LXMusicPlayer", targets: ["LXMusicPlayer"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/PrivateFrameworks/ProtocolBuffer", .upToNextMinor(from: "0.1.0")),
         .package(
             local: .package(
                 path: "../mediaremote-adapter",
@@ -48,7 +47,7 @@ let package = Package(
             ),
             remote: .package(
                 url: "https://github.com/MxIris-LyricsX-Project/mediaremote-adapter",
-                branch: "master"
+                .branchItem("master")
             )
         ),
         
@@ -77,7 +76,6 @@ let package = Package(
         .target(
             name: "MediaRemotePrivate",
             dependencies: [
-                .product(name: "PrivateProtocolBuffer", package: "ProtocolBuffer"),
             ],
             cSettings: [
                 .define("TARGET_OS_MAC", to: "1", .when(platforms: [.macOS, .iOS])),
