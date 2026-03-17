@@ -1,4 +1,4 @@
-// swift-tools-version:5.3
+// swift-tools-version: 6.2
 
 import PackageDescription
 import Foundation
@@ -9,12 +9,20 @@ extension Package.Dependency {
     }
 
     static func package(local localSearchPaths: LocalSearchPath..., remote: Package.Dependency) -> Package.Dependency {
+        let currentFilePath = #filePath
+        let isClonedDependency = currentFilePath.contains("/checkouts/") ||
+            currentFilePath.contains("/SourcePackages/") ||
+            currentFilePath.contains("/.build/")
+
+        if isClonedDependency {
+            return remote
+        }
         for local in localSearchPaths {
             switch local {
             case .package(let path, let isRelative, let isEnabled):
                 guard isEnabled else { continue }
-                let url = if isRelative, let resolvedURL = URL(string: path, relativeTo: URL(fileURLWithPath: #filePath)) {
-                    resolvedURL
+                let url = if isRelative {
+                    URL(fileURLWithPath: path, relativeTo: URL(fileURLWithPath: #filePath))
                 } else {
                     URL(fileURLWithPath: path)
                 }
@@ -47,7 +55,7 @@ let package = Package(
             ),
             remote: .package(
                 url: "https://github.com/MxIris-LyricsX-Project/mediaremote-adapter",
-                .branchItem("master")
+                branch: "master"
             )
         ),
         
