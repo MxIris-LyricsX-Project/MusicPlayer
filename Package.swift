@@ -55,7 +55,7 @@ let package = Package(
             ),
             remote: .package(
                 url: "https://github.com/MxIris-LyricsX-Project/mediaremote-adapter",
-                branch: "master"
+                from: "0.1.1"
             )
         ),
         
