@@ -1,4 +1,4 @@
-// swift-tools-version: 6.2
+// swift-tools-version:6.2
 
 import PackageDescription
 import Foundation
@@ -90,5 +90,6 @@ let package = Package(
                 .define("TARGET_OS_IPHONE", to: "1", .when(platforms: [.iOS])),
             ]
         ),
-    ]
+    ],
+    swiftLanguageModes: [.v5],
 )
