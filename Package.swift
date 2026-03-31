@@ -51,7 +51,7 @@ let package = Package(
             local: .package(
                 path: "../mediaremote-adapter",
                 isRelative: true,
-                isEnabled: true
+                isEnabled: false
             ),
             remote: .package(
                 url: "https://github.com/MxIris-LyricsX-Project/mediaremote-adapter",
