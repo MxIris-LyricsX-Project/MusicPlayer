@@ -103,7 +103,7 @@ extension MusicPlayers {
         }
         
         private func handleNowPlayingInfoDidChange(for infoDict: CFDictionary?) {
-            guard let infoDict = infoDict as? NSDictionary else {
+            guard let infoDict else {
                 playbackState = .stopped
                 currentTrack = nil
                 return
