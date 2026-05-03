@@ -86,7 +86,14 @@
 - (void)setPlaybackTime:(NSTimeInterval)playbackTime {}
 
 - (void)setPlayerState:(LXPlayerState *)playerState tolerate:(NSTimeInterval)tolerate {
-    if (![self.playerState isApproximateEqualToState:playerState tolerate:tolerate]) {
+    // Caller-supplied `tolerate` (historically 1.5s for all scriptable players)
+    // suppresses any drift correction smaller than that threshold. For lyric
+    // synchronization that's an entire line of latency. Clamp internally to
+    // 0.2s — still 4x the typical Apple Events RPC jitter (~50ms), so steady
+    // playback won't trigger spurious publishes, but real drift from buffering
+    // or repeat-one wrap-around gets corrected on the next manual update tick.
+    NSTimeInterval effectiveTolerate = MIN(tolerate, 0.2);
+    if (![self.playerState isApproximateEqualToState:playerState tolerate:effectiveTolerate]) {
         self.playerState = playerState;
     }
 }
