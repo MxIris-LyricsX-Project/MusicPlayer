@@ -100,7 +100,7 @@ static LXPlayerState* playerState(VoxApplication *app) {
         self.currentTrack = track;
         self.playerState = playerState(self.app);
     } else {
-        [self setPlayerState:playerState(self.app) tolerate:1.5];
+        [self setPlayerState:playerState(self.app) tolerate:0.1];
     }
 }
 
@@ -115,7 +115,7 @@ static LXPlayerState* playerState(VoxApplication *app) {
     LXMusicTrack *track = currentTrack(self.app);
     LXPlayerState *state = playerState(self.app);
     if ([self.currentTrack.persistentID isEqualToString:track.persistentID]) {
-        [self setPlayerState:state tolerate:1.5];
+        [self setPlayerState:state tolerate:0.1];
     } else {
         self.currentTrack = track;
         self.playerState = state;
@@ -126,7 +126,7 @@ static LXPlayerState* playerState(VoxApplication *app) {
 - (void)updatePlayback {
     if (!self.isRunning) { return; }
     LXPlayerState *state = playerState(self.app);
-    [self setPlayerState:state tolerate:1.5];
+    [self setPlayerState:state tolerate:0.1];
 }
 
 - (void)resume {

@@ -77,7 +77,7 @@ static LXPlayerState* playerState(SpotifyApplication *app) {
         playbackState = LXPlaybackStateStopped;
     }
     LXPlayerState *state = [LXPlayerState state:playbackState playbackTime:position];
-    [self setPlayerState:state tolerate:1.5];
+    [self setPlayerState:state tolerate:0.1];
 }
 
 - (void)setPlaybackTime:(NSTimeInterval)playbackTime {
@@ -91,7 +91,7 @@ static LXPlayerState* playerState(SpotifyApplication *app) {
     LXMusicTrack *track = currentTrack(self.app);
     LXPlayerState *state = playerState(self.app);
     if ([self.currentTrack.persistentID isEqualToString:track.persistentID]) {
-        [self setPlayerState:state tolerate:1.5];
+        [self setPlayerState:state tolerate:0.1];
     } else {
         self.currentTrack = track;
         self.playerState = state;

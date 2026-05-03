@@ -81,7 +81,7 @@ static LXPlayerState* playerState(MusicApplication *app) {
     } else {
         state = playerState(self.app);
     }
-    [self setPlayerState:state tolerate:1.5];
+    [self setPlayerState:state tolerate:0.1];
 }
 
 - (void)setPlaybackTime:(NSTimeInterval)playbackTime {
@@ -95,7 +95,7 @@ static LXPlayerState* playerState(MusicApplication *app) {
     LXMusicTrack *track = currentTrack(self.app);
     LXPlayerState *state = playerState(self.app);
     if ([self.currentTrack.persistentID isEqualToString:track.persistentID]) {
-        [self setPlayerState:state tolerate:1.5];
+        [self setPlayerState:state tolerate:0.1];
     } else {
         self.currentTrack = track;
         self.playerState = state;
