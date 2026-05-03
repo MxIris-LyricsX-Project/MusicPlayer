@@ -61,7 +61,9 @@ struct MRNowPlayingInfo {
     }
 
     var _duration: TimeInterval? {
-        return self["kMRMediaRemoteNowPlayingInfoDuration"]
+        let value: TimeInterval? = self["kMRMediaRemoteNowPlayingInfoDuration"]
+        guard let value, value.isFinite else { return nil }
+        return value
     }
 
     var _artworkData: Data? {
