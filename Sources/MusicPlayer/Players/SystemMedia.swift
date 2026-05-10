@@ -38,6 +38,14 @@ extension MusicPlayers {
 
         private var systemPlaybackState: SystemPlaybackState?
 
+        // Track raw NowPlayingInfo artwork data so we can detect artwork-only
+        // updates within the same track id. Some sources (notably iOS-on-Mac
+        // apps and any app that lazy-loads artwork) deliver the new song's
+        // title/artist first and the new artwork in a later NowPlayingInfo
+        // notification with the same id. Without this, the second update is
+        // dropped and consumers keep showing the previous song's cover.
+        private var lastArtworkData: Data?
+
         public init?(allowsApplicationBundleIdentifiers: [String] = []) {
             self.allowsApplicationBundleIdentifiers = allowsApplicationBundleIdentifiers
             if usesAdapter {
@@ -135,9 +143,11 @@ extension MusicPlayers {
             }
 
             let newTrack = info.track
+            let newArtworkData = info._artworkData
 //            let oldId = currentTrack?.id ?? "<nil>"
 //            let newId = newTrack?.id ?? "<nil>"
             let trackWillChange = newTrack?.id != currentTrack?.id
+            let artworkWillChange = newArtworkData != lastArtworkData
 //
 //            // Only probe MachO when the decision is interesting — every track-
 //            // replace event is exactly the flicker we're chasing, and the iOS-
@@ -163,8 +173,9 @@ extension MusicPlayers {
 //                  oldStateDescription,
 //                  String(describing: newState))
 
-            if trackWillChange {
+            if trackWillChange || artworkWillChange {
                 currentTrack = newTrack
+                lastArtworkData = newArtworkData
             }
         }
 
