@@ -42,6 +42,13 @@ extension MusicPlayers {
             self.allowsApplicationBundleIdentifiers = allowsApplicationBundleIdentifiers
             if usesAdapter {
                 setupAdapterController()
+                // Pick up the host-side debug toggle without forcing host code
+                // to wire it through. Toggle it from the host with:
+                //   defaults write <host-bundle-id> MediaRemoteAdapterDebugDump -bool YES
+                // Then restart the host process. When on, every NowPlayingInfo
+                // change is logged to the host's console with the full source
+                // dictionary, including fields this adapter normally drops.
+                adapterController.debugDumpEnabled = false
                 adapterController.startListening()
                 adapterController.updatePlayerState(userInfo: ["setSystemPlaybackState": true])
             } else {
@@ -121,12 +128,42 @@ extension MusicPlayers {
             default:
                 newState = .stopped
             }
-            if !playbackState.approximateEqual(to: newState) {
+            let stateApproxEqual = playbackState.approximateEqual(to: newState)
+            let oldStateDescription = String(describing: playbackState)
+            if !stateApproxEqual {
                 playbackState = newState
             }
 
             let newTrack = info.track
-            if newTrack?.id != currentTrack?.id {
+//            let oldId = currentTrack?.id ?? "<nil>"
+//            let newId = newTrack?.id ?? "<nil>"
+            let trackWillChange = newTrack?.id != currentTrack?.id
+//
+//            // Only probe MachO when the decision is interesting — every track-
+//            // replace event is exactly the flicker we're chasing, and the iOS-
+//            // on-Mac fingerprint helps confirm the source.
+//            #if os(macOS)
+//            let iosFingerprint = trackWillChange ? (info.isiOSAppOnMac ? "true" : "false") : "<skip>"
+//            #else
+//            let iosFingerprint = "<n/a>"
+//            #endif
+//
+//            NSLog("[SystemMedia][Flicker] InfoChange trackWillChange=%@ stateChanged=%@ oldId=%@ newId=%@ uid=%@ bundle=%@ iOSAppOnMac=%@ rawTitle=%@ rawArtist=%@ recoveredTitle=%@ recoveredArtist=%@ oldState=%@ newState=%@",
+//                  String(trackWillChange),
+//                  String(!stateApproxEqual),
+//                  oldId,
+//                  newId,
+//                  info._uniqueIdentifier.map(String.init) ?? "<nil>",
+//                  info._bundleIdentifier ?? "<nil>",
+//                  iosFingerprint,
+//                  info._title ?? "<nil>",
+//                  info._artist ?? "<nil>",
+//                  newTrack?.title ?? "<nil>",
+//                  newTrack?.artist ?? "<nil>",
+//                  oldStateDescription,
+//                  String(describing: newState))
+
+            if trackWillChange {
                 currentTrack = newTrack
             }
         }
@@ -142,7 +179,12 @@ extension MusicPlayers {
         }
 
         private func _handleNowPlayingApplicationPlaybackStateDidChange(for rawValue: Int?) {
+            let oldSystemState = systemPlaybackState
             systemPlaybackState = rawValue.flatMap(SystemPlaybackState.init)
+//            NSLog("[SystemMedia][Flicker] AppPlaybackStateChange raw=%@ old=%@ new=%@",
+//                  rawValue.map(String.init) ?? "<nil>",
+//                  oldSystemState.map { String(describing: $0) } ?? "<nil>",
+//                  systemPlaybackState.map { String(describing: $0) } ?? "<nil>")
             if systemPlaybackState == .playing || systemPlaybackState == .paused {
                 updatePlayerState()
             } else {
