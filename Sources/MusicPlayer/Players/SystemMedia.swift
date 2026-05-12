@@ -137,7 +137,7 @@ extension MusicPlayers {
                 newState = .stopped
             }
             let stateApproxEqual = playbackState.approximateEqual(to: newState)
-            let oldStateDescription = String(describing: playbackState)
+//            let oldStateDescription = String(describing: playbackState)
             if !stateApproxEqual {
                 playbackState = newState
             }
@@ -190,7 +190,7 @@ extension MusicPlayers {
         }
 
         private func _handleNowPlayingApplicationPlaybackStateDidChange(for rawValue: Int?) {
-            let oldSystemState = systemPlaybackState
+//            let oldSystemState = systemPlaybackState
             systemPlaybackState = rawValue.flatMap(SystemPlaybackState.init)
 //            NSLog("[SystemMedia][Flicker] AppPlaybackStateChange raw=%@ old=%@ new=%@",
 //                  rawValue.map(String.init) ?? "<nil>",
