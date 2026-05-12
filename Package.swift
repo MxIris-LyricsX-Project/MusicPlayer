@@ -40,7 +40,6 @@ let package = Package(
     name: "MusicPlayer",
     platforms: [
         .macOS(.v10_15),
-        .iOS(.v13),
     ],
     products: [
         .library(name: "MusicPlayer", targets: ["MusicPlayer"]),
@@ -59,36 +58,27 @@ let package = Package(
             )
         ),
         
+        .package(url: "https://github.com/Mx-Iris/FrameworkToolbox", from: "0.5.4"),
     ],
     targets: [
         .target(
             name: "MusicPlayer",
             dependencies: [
-                .target(name: "LXMusicPlayer", condition: .when(platforms: [.macOS])),
-                .target(name: "MediaRemotePrivate", condition: .when(platforms: [.macOS, .iOS])),
+                .target(name: "LXMusicPlayer"),
+                .target(name: "MediaRemotePrivate"),
                 .product(name: "MediaRemoteAdapter", package: "mediaremote-adapter"),
-            ], cSettings: [
-                .define("TARGET_OS_MAC", to: "1", .when(platforms: [.macOS, .iOS])),
-                .define("TARGET_OS_IPHONE", to: "1", .when(platforms: [.iOS])),
-            ]
+                .product(name: "FoundationToolbox", package: "FrameworkToolbox"),
+            ],
         ),
         .target(
             name: "LXMusicPlayer",
             cSettings: [
-                .define("TARGET_OS_MAC", to: "1", .when(platforms: [.macOS, .iOS])),
-                .define("TARGET_OS_IPHONE", to: "1", .when(platforms: [.iOS])),
                 .headerSearchPath("private"),
                 .headerSearchPath("BridgingHeader"),
-            ]
+            ],
         ),
         .target(
             name: "MediaRemotePrivate",
-            dependencies: [
-            ],
-            cSettings: [
-                .define("TARGET_OS_MAC", to: "1", .when(platforms: [.macOS, .iOS])),
-                .define("TARGET_OS_IPHONE", to: "1", .when(platforms: [.iOS])),
-            ]
         ),
     ],
     swiftLanguageModes: [.v5],
