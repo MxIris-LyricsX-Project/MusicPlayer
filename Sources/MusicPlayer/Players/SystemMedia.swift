@@ -14,7 +14,7 @@ extension MusicPlayers {
         @Published public private(set) var currentTrack: MusicTrack?
         @Published public private(set) var playbackState: PlaybackState = .stopped
 
-        public private(set) var usesAdapter: Bool = {
+        public let usesAdapter: Bool = {
             if #available(macOS 15.4, *) {
                 return true
             } else {
