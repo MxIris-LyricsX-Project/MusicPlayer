@@ -1,0 +1,72 @@
+// MediaRemoteConstants.def
+//
+// X-macro table of every NSString constant declared in MediaRemote.h.
+// Each consumer #defines MR_NSSTRING(name) to its own expansion (extern decl,
+// definition + fallback literal, or OSL_RESOLVE_NSSTRING call), #include's
+// this file, then #undefs MR_NSSTRING.
+//
+// To add a new constant: add one line below in the appropriate section.
+// To remove one: delete the line. The header, definitions, and constructor
+// resolver list all stay in sync automatically.
+//
+// NOTE: This file lives next to MediaRemote.h in the SPM publicHeadersPath
+// directory by design — MediaRemote.h #includes it via X-macro expansion to
+// generate its extern declarations. Despite the public placement, this is
+// NOT a standalone header: it has no header guard (re-include is required by
+// the X-macro pattern) and #include-ing it without first defining
+// MR_NSSTRING(name) will not produce useful output. Treat as internal.
+
+// MARK: - Notifications
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoDidChangeNotification)
+MR_NSSTRING(kMRMediaRemoteNowPlayingPlaybackQueueDidChangeNotification)
+MR_NSSTRING(kMRMediaRemotePickableRoutesDidChangeNotification)
+MR_NSSTRING(kMRMediaRemoteNowPlayingApplicationDidChangeNotification)
+MR_NSSTRING(kMRMediaRemoteNowPlayingApplicationIsPlayingDidChangeNotification)
+MR_NSSTRING(kMRMediaRemoteRouteStatusDidChangeNotification)
+MR_NSSTRING(kMRMediaRemoteNowPlayingApplicationPlaybackStateDidChangeNotification)
+
+// MARK: - Keys
+MR_NSSTRING(kMRMediaRemoteNowPlayingApplicationPIDUserInfoKey)
+MR_NSSTRING(kMRMediaRemoteNowPlayingApplicationIsPlayingUserInfoKey)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoAlbum)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoArtist)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoArtworkData)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoArtworkMIMEType)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoChapterNumber)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoComposer)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoDuration)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoElapsedTime)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoGenre)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoIsAdvertisement)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoIsBanned)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoIsInWishList)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoIsLiked)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoIsMusicApp)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoMediaType)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoPlaybackRate)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoProhibitsSkip)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoQueueIndex)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoRadioStationIdentifier)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoRepeatMode)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoShuffleMode)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoStartTime)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoSupportsFastForward15Seconds)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoSupportsIsBanned)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoSupportsIsLiked)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoSupportsRewind15Seconds)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoTimestamp)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoTitle)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoTotalChapterCount)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoTotalDiscCount)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoTotalQueueCount)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoTotalTrackCount)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoTrackNumber)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoUniqueIdentifier)
+MR_NSSTRING(kMRMediaRemoteNowPlayingInfoRadioStationHash)
+MR_NSSTRING(kMRMediaRemoteOptionMediaType)
+MR_NSSTRING(kMRMediaRemoteOptionSourceID)
+MR_NSSTRING(kMRMediaRemoteOptionTrackID)
+MR_NSSTRING(kMRMediaRemoteOptionStationID)
+MR_NSSTRING(kMRMediaRemoteOptionStationHash)
+MR_NSSTRING(kMRMediaRemoteRouteDescriptionUserInfoKey)
+MR_NSSTRING(kMRMediaRemoteRouteStatusUserInfoKey)
