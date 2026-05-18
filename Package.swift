@@ -46,7 +46,18 @@ let package = Package(
         .library(name: "LXMusicPlayer", targets: ["LXMusicPlayer"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/MxIris-Reverse-Engineering/OpenSoftLinking", from: "0.1.0"),
+        .package(
+            local: .package(
+                path: "../mediaremote-adapter",
+                isRelative: true,
+                isEnabled: false
+            ),
+            remote: .package(
+                url: "https://github.com/MxIris-LyricsX-Project/mediaremote-adapter",
+                from: "0.1.2"
+            )
+        ),
+        
         .package(url: "https://github.com/Mx-Iris/FrameworkToolbox", from: "0.5.4"),
     ],
     targets: [
@@ -55,7 +66,7 @@ let package = Package(
             dependencies: [
                 .target(name: "LXMusicPlayer"),
                 .target(name: "MediaRemotePrivate"),
-                .target(name: "MediaRemoteAdapter"),
+                .product(name: "MediaRemoteAdapter", package: "mediaremote-adapter"),
                 .product(name: "FoundationToolbox", package: "FrameworkToolbox"),
             ],
         ),
@@ -68,19 +79,6 @@ let package = Package(
         ),
         .target(
             name: "MediaRemotePrivate",
-        ),
-        .target(
-            name: "MediaRemoteAdapter",
-            dependencies: ["MediaRemoteAdapterObjC"],
-            resources: [
-                .copy("Resources/run.pl"),
-            ]
-        ),
-        .target(
-            name: "MediaRemoteAdapterObjC",
-            dependencies: [
-                .product(name: "OpenSoftLinking", package: "OpenSoftLinking"),
-            ]
         ),
     ],
     swiftLanguageModes: [.v5],
