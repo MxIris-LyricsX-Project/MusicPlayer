@@ -132,7 +132,24 @@ extension MusicPlayers {
             case .playing:
                 newState = info.startTime.map(PlaybackState.playing) ?? .stopped
             case .paused:
-                newState = info._elapsedTime.map(PlaybackState.paused) ?? .stopped
+                if playbackState.isPlaying {
+                    // Transitioning from playing → paused. The Now-Playing dict's
+                    // elapsed time is the position sampled at its `_timestamp`,
+                    // which is usually still from BEFORE the pause (the dict is
+                    // refreshed asynchronously), so taking it verbatim makes the
+                    // position jump several seconds backwards the instant playback
+                    // pauses. The just-ended playing state already interpolates the
+                    // accurate stop position (`elapsed + (now − timestamp)`), so
+                    // freeze there instead.
+                    newState = .paused(time: playbackState.time)
+                } else if let elapsed = info._elapsedTime {
+                    // Already paused: accept a fresh elapsed time unless it is an
+                    // apparent backward jump (a stale re-report of the pre-pause
+                    // sample), so the held position never regresses.
+                    newState = elapsed + 0.5 >= playbackState.time ? .paused(time: elapsed) : playbackState
+                } else {
+                    newState = playbackState
+                }
             default:
                 newState = .stopped
             }
