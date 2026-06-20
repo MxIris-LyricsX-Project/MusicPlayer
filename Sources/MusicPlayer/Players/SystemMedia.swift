@@ -130,7 +130,18 @@ extension MusicPlayers {
             let newState: PlaybackState
             switch systemPlaybackState {
             case .playing:
-                newState = info.startTime.map(PlaybackState.playing) ?? .stopped
+                if case .paused(let pausedTime) = playbackState {
+                    // Resuming from pause. The dict's start time is `timestamp −
+                    // elapsed`, and right after resume the timestamp is usually
+                    // still the pre-resume sample, so `.playing.time` (= elapsed +
+                    // (now − timestamp)) counts the whole paused span as if it had
+                    // played — the position drifts forward until the next info
+                    // refresh corrects it. The paused time is the accurate resume
+                    // position, so seed the playing clock from it instead.
+                    newState = .playing(time: pausedTime)
+                } else {
+                    newState = info.startTime.map(PlaybackState.playing) ?? .stopped
+                }
             case .paused:
                 if playbackState.isPlaying {
                     // Transitioning from playing → paused. The Now-Playing dict's
