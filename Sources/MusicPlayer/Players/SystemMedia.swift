@@ -45,6 +45,9 @@ extension MusicPlayers {
         // notification with the same id. Without this, the second update is
         // dropped and consumers keep showing the previous song's cover.
         private var lastArtworkData: Data?
+        private let positionLock = NSRecursiveLock()
+        private var pendingSeek: (id: UUID, trackID: String?, time: TimeInterval, started: Date)?
+        private var lastPositionTimestamp: Date?
 
         public init?(allowsApplicationBundleIdentifiers: [String] = []) {
             self.allowsApplicationBundleIdentifiers = allowsApplicationBundleIdentifiers
@@ -76,7 +79,9 @@ extension MusicPlayers {
 
                 MRMediaRemoteGetNowPlayingApplicationIsPlaying_?(DispatchQueue.playerUpdate) { [weak self] isPlaying in
                     guard let self else { return }
+                    self.positionLock.lock()
                     self.systemPlaybackState = isPlaying.boolValue ? .playing : .paused
+                    self.positionLock.unlock()
                     updatePlayerState()
                 }
             }
@@ -102,9 +107,10 @@ extension MusicPlayers {
         }
 
         private func handleNowPlayingInfoDidChange(for trackInfo: TrackInfo?, userInfo: [String: Any]?) {
+            positionLock.lock()
+            defer { positionLock.unlock() }
             guard let trackInfo else {
-                playbackState = .stopped
-                currentTrack = nil
+                resetPlayback()
                 return
             }
             if userInfo?["setSystemPlaybackState"] != nil {
@@ -119,18 +125,63 @@ extension MusicPlayers {
         
         private func handleNowPlayingInfoDidChange(for infoDict: CFDictionary?) {
             guard let infoDict else {
-                playbackState = .stopped
-                currentTrack = nil
+                resetPlayback()
                 return
             }
             _handleNowPlayingInfoDidChange(for: MRNowPlayingInfo(dict: infoDict))
         }
 
+        private func resetPlayback() {
+            positionLock.lock()
+            defer { positionLock.unlock() }
+            pendingSeek = nil
+            lastPositionTimestamp = nil
+            lastArtworkData = nil
+            playbackState = .stopped
+            currentTrack = nil
+        }
+
         private func _handleNowPlayingInfoDidChange(for info: MRNowPlayingInfo) {
+            positionLock.lock()
+            defer { positionLock.unlock() }
+            // Pause/resume continuity applies only within the same track.
+            let newTrack = info.track
+            let trackWillChange = newTrack?.id != currentTrack?.id
+            var acceptPosition = true
+            var resetContinuity = trackWillChange
+            if trackWillChange { lastPositionTimestamp = nil }
+            if let seek = pendingSeek {
+                if trackWillChange || newTrack?.id != seek.trackID {
+                    pendingSeek = nil
+                } else {
+                    let age = max(0, -seek.started.timeIntervalSinceNow)
+                    let elapsed = info._elapsedTime
+                    let expected = seek.time + (systemPlaybackState == .playing ? age : 0)
+                    let fresh = info._timestamp.map { timestamp in
+                        lastPositionTimestamp.map { timestamp >= $0 } ?? true
+                    } ?? true
+                    let confirmed = fresh && (elapsed.map {
+                        $0.isFinite && min(abs($0 - seek.time), abs($0 - expected)) <= 2
+                    } ?? false)
+                    if confirmed || age >= 2 {
+                        pendingSeek = nil
+                        resetContinuity = true
+                    } else {
+                        // A command reply/listener update may still describe the
+                        // pre-seek position. Keep the optimistic clock until a
+                        // matching sample arrives, or reconcile after the deadline.
+                        acceptPosition = false
+                    }
+                }
+            }
+            if let timestamp = info._timestamp, let previous = lastPositionTimestamp,
+               timestamp < previous, !resetContinuity {
+                acceptPosition = false
+            }
             let newState: PlaybackState
             switch systemPlaybackState {
             case .playing:
-                if case .paused(let pausedTime) = playbackState {
+                if !resetContinuity, case .paused(let pausedTime) = playbackState {
                     // Resuming from pause. The dict's start time is `timestamp −
                     // elapsed`, and right after resume the timestamp is usually
                     // still the pre-resume sample, so `.playing.time` (= elapsed +
@@ -140,10 +191,10 @@ extension MusicPlayers {
                     // position, so seed the playing clock from it instead.
                     newState = .playing(time: pausedTime)
                 } else {
-                    newState = info.startTime.map(PlaybackState.playing) ?? .stopped
+                    newState = info.startTime.map(PlaybackState.playing) ?? (trackWillChange ? .stopped : playbackState)
                 }
             case .paused:
-                if playbackState.isPlaying {
+                if !resetContinuity && playbackState.isPlaying {
                     // Transitioning from playing → paused. The Now-Playing dict's
                     // elapsed time is the position sampled at its `_timestamp`,
                     // which is usually still from BEFORE the pause (the dict is
@@ -157,24 +208,33 @@ extension MusicPlayers {
                     // Already paused: accept a fresh elapsed time unless it is an
                     // apparent backward jump (a stale re-report of the pre-pause
                     // sample), so the held position never regresses.
-                    newState = elapsed + 0.5 >= playbackState.time ? .paused(time: elapsed) : playbackState
+                    newState = resetContinuity || elapsed + 0.5 >= playbackState.time ? .paused(time: elapsed) : playbackState
                 } else {
-                    newState = playbackState
+                    newState = trackWillChange ? .stopped : playbackState
                 }
             default:
                 newState = .stopped
             }
             let stateApproxEqual = playbackState.approximateEqual(to: newState)
 //            let oldStateDescription = String(describing: playbackState)
-            if !stateApproxEqual {
-                playbackState = newState
+            if acceptPosition {
+                if resetContinuity || !stateApproxEqual { playbackState = newState }
+                if info._elapsedTime != nil, let timestamp = info._timestamp {
+                    lastPositionTimestamp = timestamp
+                }
+            } else {
+                // Playback state notifications remain authoritative even while
+                // an older position sample is being ignored.
+                if systemPlaybackState == .paused && playbackState.isPlaying {
+                    playbackState = .paused(time: playbackState.time)
+                } else if systemPlaybackState == .playing, case .paused(let time) = playbackState {
+                    playbackState = .playing(time: time)
+                }
             }
 
-            let newTrack = info.track
             let newArtworkData = info._artworkData
 //            let oldId = currentTrack?.id ?? "<nil>"
 //            let newId = newTrack?.id ?? "<nil>"
-            let trackWillChange = newTrack?.id != currentTrack?.id
             let artworkWillChange = newArtworkData != lastArtworkData
 //
 //            // Only probe MachO when the decision is interesting — every track-
@@ -209,8 +269,7 @@ extension MusicPlayers {
 
         private func handleNowPlayingApplicationPlaybackStateDidChange(for notification: Notification) {
             guard let info = notification.userInfo else {
-                playbackState = .stopped
-                currentTrack = nil
+                resetPlayback()
                 return
             }
 
@@ -218,6 +277,8 @@ extension MusicPlayers {
         }
 
         private func _handleNowPlayingApplicationPlaybackStateDidChange(for rawValue: Int?) {
+            positionLock.lock()
+            defer { positionLock.unlock() }
 //            let oldSystemState = systemPlaybackState
             systemPlaybackState = rawValue.flatMap(SystemPlaybackState.init)
 //            NSLog("[SystemMedia][Flicker] AppPlaybackStateChange raw=%@ old=%@ new=%@",
@@ -227,8 +288,7 @@ extension MusicPlayers {
             if systemPlaybackState == .playing || systemPlaybackState == .paused {
                 updatePlayerState()
             } else {
-                playbackState = .stopped
-                currentTrack = nil
+                resetPlayback()
             }
         }
     }
@@ -249,15 +309,32 @@ extension MusicPlayers.SystemMedia: MusicPlayerProtocol {
 
     public var playbackTime: TimeInterval {
         get {
+            positionLock.lock()
+            defer { positionLock.unlock() }
             return playbackState.time
         }
         set {
+            positionLock.lock()
+            defer { positionLock.unlock() }
+            guard newValue.isFinite else { return }
+            let seekID = UUID()
+            pendingSeek = (seekID, currentTrack?.id, newValue, Date())
+            playbackState = playbackState.withTime(newValue)
             if usesAdapter {
                 adapterController.setTime(seconds: newValue)
             } else {
                 MRMediaRemoteSetElapsedTime_?(newValue)
             }
-            playbackState = playbackState.withTime(newValue)
+            // A paused player may not send another event if seeking fails.
+            // Request a final sample instead of relying only on notifications.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+                guard let self else { return }
+                self.positionLock.lock()
+                let stillPending = self.pendingSeek?.id == seekID
+                self.positionLock.unlock()
+                guard stillPending else { return }
+                self.updatePlayerState()
+            }
         }
     }
 
