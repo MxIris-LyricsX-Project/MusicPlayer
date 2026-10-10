@@ -223,7 +223,8 @@ struct MRNowPlayingInfo {
             return nil
         }
         let resolved = resolvedTitleArtist
-        return MusicTrack(id: id, title: resolved.title, album: _album, artist: resolved.artist, duration: _duration, fileURL: nil, artwork: artwork, originalTrack: nil)
+        let origin = _bundleIdentifier.map { ["bundleIdentifier": $0] as NSDictionary }
+        return MusicTrack(id: id, title: resolved.title, album: _album, artist: resolved.artist, duration: _duration, fileURL: nil, artwork: artwork, originalTrack: origin)
     }
 }
 

@@ -174,7 +174,12 @@ extension MusicPlayers {
             let newArtworkData = info._artworkData
 //            let oldId = currentTrack?.id ?? "<nil>"
 //            let newId = newTrack?.id ?? "<nil>"
-            let trackWillChange = newTrack?.id != currentTrack?.id
+            let trackWillChange: Bool
+            if let newTrack, let currentTrack {
+                trackWillChange = !newTrack.hasSameLyricsLookupIdentity(as: currentTrack)
+            } else {
+                trackWillChange = (newTrack == nil) != (currentTrack == nil)
+            }
             let artworkWillChange = newArtworkData != lastArtworkData
 //
 //            // Only probe MachO when the decision is interesting — every track-
