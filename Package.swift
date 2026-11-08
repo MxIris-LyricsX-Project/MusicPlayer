@@ -90,6 +90,12 @@ let package = Package(
                 .headerSearchPath("../../Sources/LXMusicPlayer/BridgingHeader"),
             ],
         ),
+        .testTarget(
+            name: "MusicPlayerTests",
+            dependencies: [
+                .target(name: "MusicPlayer"),
+            ],
+        ),
     ],
     swiftLanguageModes: [.v5],
 )

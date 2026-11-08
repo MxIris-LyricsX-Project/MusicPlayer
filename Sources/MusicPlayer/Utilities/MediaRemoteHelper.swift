@@ -39,6 +39,17 @@ struct MRNowPlayingInfo {
         self.dict = dict
     }
 
+    /// Info read through MediaRemote directly. Its dictionary leaves out the
+    /// app the track plays in, so carry the now-playing client's identity in
+    /// it, the way mediaremote-adapter's payloads do.
+    init(dict: NSDictionary, bundleIdentifier: String?, parentApplicationBundleIdentifier: String?) {
+        // An NSDictionary's mutable copy is always an NSMutableDictionary.
+        let dictionary = dict.mutableCopy() as! NSMutableDictionary
+        dictionary.setValue(bundleIdentifier, forKey: "bundleIdentifier")
+        dictionary.setValue(parentApplicationBundleIdentifier, forKey: "parentApplicationBundleIdentifier")
+        self.init(dict: dictionary)
+    }
+
     private subscript<T>(key: String) -> T? {
         return dict.value(forKey: key) as? T
     }
@@ -81,9 +92,11 @@ struct MRNowPlayingInfo {
         return self["kMRMediaRemoteNowPlayingInfoArtworkData"]
     }
 
-    /// Source-app identity carried in the dictionary by the adapter (not part
-    /// of the canonical MediaRemote NowPlayingInfo schema). Available iff the
-    /// payload originated from `mediaremote-adapter`.
+    /// Source-app identity carried in the dictionary (not part of the
+    /// canonical MediaRemote NowPlayingInfo schema): by `mediaremote-adapter`
+    /// in its payloads, and by `init(dict:bundleIdentifier:parentApplicationBundleIdentifier:)`
+    /// for info read through MediaRemote directly. The process identifier and
+    /// application name come from the adapter only.
     var _bundleIdentifier: String? {
         return self["bundleIdentifier"]
     }
@@ -98,6 +111,23 @@ struct MRNowPlayingInfo {
 
     var _applicationName: String? {
         return self["applicationName"]
+    }
+
+    /// Bundle identifier of the app the track plays in: the parent app's when
+    /// the now-playing client is hosted by one (an extension, a helper, an
+    /// embedded player), the client's own otherwise. The adapter's allow-list
+    /// matches the same identifier.
+    var playingApplicationBundleIdentifier: String? {
+        return _parentApplicationBundleIdentifier ?? _bundleIdentifier
+    }
+
+    /// The known player the track plays in, if it plays in one.
+    var playerName: MusicPlayerName? {
+        #if os(macOS)
+        return playingApplicationBundleIdentifier.flatMap(MusicPlayerName.init(bundleIdentifier:))
+        #else
+        return nil
+        #endif
     }
 
     #if os(macOS)

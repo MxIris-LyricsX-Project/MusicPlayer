@@ -92,6 +92,17 @@ extension MusicPlayerName {
     }
     
     static var scriptingPlayerNames: [MusicPlayerName] = [.appleMusic, .spotify, .vox, .audirvana, .swinsian]
+
+    /// The player whose app has `bundleIdentifier`, if it is one of the
+    /// scriptable players this package knows.
+    init?(bundleIdentifier: String) {
+        guard let playerName = Self.scriptingPlayerNames.first(where: {
+            $0.lxName?.candidateBundleID().contains(bundleIdentifier) == true
+        }) else {
+            return nil
+        }
+        self = playerName
+    }
 }
 
 #endif

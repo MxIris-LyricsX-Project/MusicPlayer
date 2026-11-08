@@ -46,6 +46,11 @@ extension MusicPlayers {
         // dropped and consumers keep showing the previous song's cover.
         private var lastArtworkData: Data?
 
+        /// The known player `currentTrack` plays in. Written with the track,
+        /// and before it, so a subscriber reacting to a new track reads the
+        /// player that track plays in.
+        private var currentTrackPlayerName: MusicPlayerName?
+
         public init?(allowsApplicationBundleIdentifiers: [String] = []) {
             self.allowsApplicationBundleIdentifiers = allowsApplicationBundleIdentifiers
             if usesAdapter {
@@ -101,10 +106,15 @@ extension MusicPlayers {
             }
         }
 
+        private func clearCurrentTrack() {
+            playbackState = .stopped
+            currentTrackPlayerName = nil
+            currentTrack = nil
+        }
+
         private func handleNowPlayingInfoDidChange(for trackInfo: TrackInfo?, userInfo: [String: Any]?) {
             guard let trackInfo else {
-                playbackState = .stopped
-                currentTrack = nil
+                clearCurrentTrack()
                 return
             }
             if userInfo?["setSystemPlaybackState"] != nil {
@@ -117,13 +127,16 @@ extension MusicPlayers {
             updatePlayerState()
         }
         
-        private func handleNowPlayingInfoDidChange(for infoDict: CFDictionary?) {
+        private func handleNowPlayingInfoDidChange(for infoDict: CFDictionary?, client: _MRNowPlayingClientProtobuf) {
             guard let infoDict else {
-                playbackState = .stopped
-                currentTrack = nil
+                clearCurrentTrack()
                 return
             }
-            _handleNowPlayingInfoDidChange(for: MRNowPlayingInfo(dict: infoDict))
+            _handleNowPlayingInfoDidChange(for: MRNowPlayingInfo(
+                dict: infoDict,
+                bundleIdentifier: client.bundleIdentifier,
+                parentApplicationBundleIdentifier: client.parentApplicationBundleIdentifier
+            ))
         }
 
         private func _handleNowPlayingInfoDidChange(for info: MRNowPlayingInfo) {
@@ -202,6 +215,7 @@ extension MusicPlayers {
 //                  String(describing: newState))
 
             if trackWillChange || artworkWillChange {
+                currentTrackPlayerName = newTrack == nil ? nil : info.playerName
                 currentTrack = newTrack
                 lastArtworkData = newArtworkData
             }
@@ -209,8 +223,7 @@ extension MusicPlayers {
 
         private func handleNowPlayingApplicationPlaybackStateDidChange(for notification: Notification) {
             guard let info = notification.userInfo else {
-                playbackState = .stopped
-                currentTrack = nil
+                clearCurrentTrack()
                 return
             }
 
@@ -227,8 +240,7 @@ extension MusicPlayers {
             if systemPlaybackState == .playing || systemPlaybackState == .paused {
                 updatePlayerState()
             } else {
-                playbackState = .stopped
-                currentTrack = nil
+                clearCurrentTrack()
             }
         }
     }
@@ -243,8 +255,11 @@ extension MusicPlayers.SystemMedia: MusicPlayerProtocol {
         return $playbackState.eraseToAnyPublisher()
     }
 
+    /// The known player the current track plays in — `.appleMusic` while
+    /// the system's now-playing app is Music — or `nil` when there is no
+    /// track or it plays in an app this package does not know.
     public var name: MusicPlayerName? {
-        return nil
+        return currentTrackPlayerName
     }
 
     public var playbackTime: TimeInterval {
@@ -315,7 +330,7 @@ extension MusicPlayers.SystemMedia: MusicPlayerProtocol {
                 }
                 MRMediaRemoteGetNowPlayingInfo_?(DispatchQueue.playerUpdate) { [weak self] info in
                     guard let self else { return }
-                    handleNowPlayingInfoDidChange(for: info)
+                    handleNowPlayingInfoDidChange(for: info, client: client)
                 }
             }
         }
