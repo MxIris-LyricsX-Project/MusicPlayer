@@ -53,6 +53,25 @@ struct NowPlayingPlayerNameTests {
         #expect(hostedBySafari.playerName == nil)
     }
 
+    @Test("an app that is not a known player still reports its bundle identifier", arguments: [
+        "com.tencent.QQMusicMac",
+        "com.netease.163music",
+    ])
+    func unknownApplicationBundleIdentifier(bundleIdentifier: String) {
+        let info = MRNowPlayingInfo(dict: ["bundleIdentifier": bundleIdentifier])
+        #expect(info.playerName == nil)
+        #expect(info.playingApplicationBundleIdentifier == bundleIdentifier)
+    }
+
+    @Test("a hosted now-playing client reports its parent app's bundle identifier")
+    func hostedClientBundleIdentifier() {
+        let info = MRNowPlayingInfo(dict: [
+            "bundleIdentifier": "com.netease.163music.helper",
+            "parentApplicationBundleIdentifier": "com.netease.163music",
+        ])
+        #expect(info.playingApplicationBundleIdentifier == "com.netease.163music")
+    }
+
     @Test("a track whose source app is not reported has no player name")
     func missingSourceApplication() {
         let info = MRNowPlayingInfo(dict: ["kMRMediaRemoteNowPlayingInfoTitle": "芒种"])

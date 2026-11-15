@@ -51,6 +51,10 @@ extension MusicPlayers {
         /// player that track plays in.
         private var currentTrackPlayerName: MusicPlayerName?
 
+        /// The bundle identifier of the app `currentTrack` plays in, known
+        /// player or not. Written and cleared with `currentTrackPlayerName`.
+        private var currentTrackPlayerBundleID: String?
+
         public init?(allowsApplicationBundleIdentifiers: [String] = []) {
             self.allowsApplicationBundleIdentifiers = allowsApplicationBundleIdentifiers
             if usesAdapter {
@@ -109,6 +113,7 @@ extension MusicPlayers {
         private func clearCurrentTrack() {
             playbackState = .stopped
             currentTrackPlayerName = nil
+            currentTrackPlayerBundleID = nil
             currentTrack = nil
         }
 
@@ -216,6 +221,7 @@ extension MusicPlayers {
 
             if trackWillChange || artworkWillChange {
                 currentTrackPlayerName = newTrack == nil ? nil : info.playerName
+                currentTrackPlayerBundleID = newTrack == nil ? nil : info.playingApplicationBundleIdentifier
                 currentTrack = newTrack
                 lastArtworkData = newArtworkData
             }
@@ -260,6 +266,14 @@ extension MusicPlayers.SystemMedia: MusicPlayerProtocol {
     /// track or it plays in an app this package does not know.
     public var name: MusicPlayerName? {
         return currentTrackPlayerName
+    }
+
+    /// The bundle identifier of the app the current track plays in — the
+    /// parent app's when the now-playing client is hosted by one — or `nil`
+    /// when there is no track or its app is not reported. Unlike `name`, it
+    /// identifies any app, not only the players this package knows.
+    public var playerBundleID: String? {
+        return currentTrackPlayerBundleID
     }
 
     public var playbackTime: TimeInterval {

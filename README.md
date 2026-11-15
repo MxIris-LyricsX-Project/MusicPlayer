@@ -42,7 +42,7 @@ Unified API for music players.
 
 #### Universal
 
-- SystemMedia: System-wide Now Playing. Its `name` is the known player the current track plays in (`.appleMusic` while Music plays), and `nil` for any other app.
+- SystemMedia: System-wide Now Playing. Its `name` is the known player the current track plays in (`.appleMusic` while Music plays), and `nil` for any other app; its `playerBundleID` is the bundle identifier of the app the current track plays in, whichever app that is.
   - [x] macOS
   - [x] iOS (jailbroken device only) (test needed)
   - [ ] Windows (via [SMTC](https://docs.microsoft.com/en-us/uwp/api/windows.media.systemmediatransportcontrols))
