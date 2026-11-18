@@ -36,6 +36,15 @@ public struct MusicTrack {
         self.originalTrack = originalTrack
     }
     
+    /// Artwork updates can share a lookup; completed metadata and player
+    /// changes cannot, even when the player's title-derived ID is unchanged.
+    public func hasSameLyricsLookupIdentity(as other: MusicTrack) -> Bool {
+        id == other.id && title == other.title && album == other.album
+            && artist == other.artist && duration == other.duration && fileURL == other.fileURL
+            && (originalTrack as? NSDictionary)?["bundleIdentifier"] as? String
+                == (other.originalTrack as? NSDictionary)?["bundleIdentifier"] as? String
+    }
+
     #if os(macOS)
     public var originalSBTrack: SBObject? {
         return originalTrack as? SBObject

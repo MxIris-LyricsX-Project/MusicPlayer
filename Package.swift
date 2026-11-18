@@ -80,6 +80,7 @@ let package = Package(
         .target(
             name: "MediaRemotePrivate",
         ),
+        .testTarget(name: "MusicPlayerTests", dependencies: ["MusicPlayer"]),
         .testTarget(
             name: "LXMusicPlayerTests",
             dependencies: [
